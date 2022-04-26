@@ -1,5 +1,8 @@
 # SuperDoitList
-
+1. SuperRunSequence()放到主循环里轮询
+2. SupTimeCntFun()放到定时器中断中定时调用
+3. 自定义的事件函数如SupCollectPoll被放到事件列表中，同时也可以在其他地方调用控制事件状态的跳转。
+4. 其他在代码中注释
 ```
 #include "main.h"
 #define PollNum 6   //要做的事情数量
@@ -117,12 +120,12 @@ signed short SupReadTemp(unsigned char i,signed short ConfigState)
 //一行为一条事件记录 
 SUPER_FRAME spuerList[] = 
 {
-  {1,1,0,"采样",SupCollectPoll},     
-  {1,1,0,"混样",SupCollectPoll},
-  {1,1,0,"留样",SupCollectPoll},
-  {1,1,0,"加药",SupCollectPoll},
-  {1,1,0,"供样",SupCollectPoll},
-  {1,1,0,"温度",SupReadTemp},
+  {1,1,0,"事情1",SupCollectPoll},     
+  {1,1,0,"事情2",SupCollectPoll},
+  {1,1,0,"事情3",SupCollectPoll},
+  {1,1,0,"事情4",SupCollectPoll},
+  {1,1,0,"事情5",SupCollectPoll},
+  {1,1,0,"温度读取",SupReadTemp},
 
 };
 //每个事件时间计值的++
