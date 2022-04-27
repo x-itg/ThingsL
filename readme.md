@@ -1,161 +1,48 @@
 # SuperDoitList
+
 1. SuperRunSequence()放到主循环里轮询
 2. SupTimeCntFun()放到定时器中断中定时调用
 3. 自定义的事件函数如SupCollectPoll被放到事件列表中，同时也可以在其他地方调用控制事件状态的跳转。
 4. 其他在代码中注释
+
 ```
-#include "main.h"
-#define PollNum 6   //要做的事情数量
+#define PollNum 8   //要做的事情数量
+#define NotFind  0xffff
+#define SupMainPollCode         (-555)//主循环轮训的主调用[不会操作到SupJumpOn、SupState、SupTimeCnt]
+#define SupStopSwitchCode       (-444)//暂停switch 跳转关闭  将不会运行switch
+#define SupPauseCaseCode        (-333)//暂停case 跳转关闭  停留在case中 
+#define SupNoStaGoon            (-222)//不指定继续  跳转放行 
+#define SupYsStaGoon            (-111)//指定继续  跳转放行 
 
-#define SupJumpEn       (spuerList[i].SupJumpOn>0)//每个跳转受外部干预的跳转条件，如果需要受外部干预暂停的case且&&上这个条件
-#define SupMState       (spuerList[i].SupState)  //当前事情的状态
-#define SupMTimeCnt      (spuerList[i].SupTimeCnt)//当前时间的毫秒计数
-
-#define SupMainPollCode          (-4)//主调用[不会操作到SupJumpOn、SupState、SupTimeCnt]
-#define SupStopSwitchCode       (-3)//暂停 跳转关闭  将不会运行switch
-#define SupPauseCaseCode        (-2)//暂停 跳转关闭  停留在case中 
-#define SupNoStaGoon            (-1)//不指定继续  跳转放行
-
-
-//这里主要做 事件列表  
-//列表进程（poll轮训）互相有序干预的一个框架
-//有以下2个动作
-//叫暂停     SupJumpOn赋0  目的是：一直停留在那个 小case环节 SupState保存不变 
-//叫继续     一种指定状态跳转继续 另外一种不指定继续跳转放行
+#define SupPollNum          (spuerList[i].SupJumpOn)//驻留次数  
+#define SupPollNumSelfSub   if(SupPollNum>0&&SupPollNum!=SupPauseCaseCode){SupPollNum--;}//驻留次数自减  不暂停case的情况下才能自减
+#define SupJumpIsEn        (SupPollNum<=0&&SupPollNum!=SupPauseCaseCode)//减到0或负值才能单次跳转放行，不然就是循环次数
+#define SupMState         (spuerList[i].SupState)  //当前事情的状态 如果是负数 不会赋值进结构体
+#define SupMTimeCnt       (spuerList[i].SupTimeCnt)//当前时间的毫秒计数 
 
 typedef struct SuperFrame{
-  signed char    SupJumpOn;   //大于零 跳转和毫秒计数的必要条件，小于等于零用来暂停用，定时器计数也清零
+  signed int     SupJumpOn;   //判断一次减一 减到0才能够跳转 不然就是调用的次数
   signed short   SupState;    //一件事情里面的第几个小case 这件事情的进程状态、0状态定义为什么都不干的状态
   unsigned int   SupTimeCnt;  //毫秒计数 SupState改变瞬间清零
-  char * text;            //这件事的概述
-  signed short   (* SupPoll)(unsigned char,signed short);//第一个参数传入Poll序号，
+  const char * text;                  //这件事的概述 id 用于外部调用时的序号的查找匹配 一般两个中文字
+  signed short   (* SupPoll)(unsigned char,signed short,signed int);//第一个参数传入Poll序号，
 }SUPER_FRAME;
-SUPER_FRAME spuerList[];//事先声明一下有这个列表  在下面定义
 
-//Switch前的判断
-signed short SupPreSwitchCase(unsigned char i,signed short Config)
-{
-  if(Config==SupMainPollCode)//主调用[不会操作到SupJumpOn、SupState、SupTimeCnt]
-  {
-    return Config;
-  }
-  if(Config==SupStopSwitchCode)//暂停 跳转关闭  将不会运行switch
-  {
-    spuerList[i].SupJumpOn=0;
-    return Config;
-  }
+#define MAXTHINGNUM 8
 
-  if(Config==SupPauseCaseCode)//暂停 跳转关闭  停留在case中 
-  {
-    spuerList[i].SupJumpOn=0;
-    return Config;
-  }
-  if(Config==SupNoStaGoon)//不指定继续  跳转放行
-  {
-    spuerList[i].SupJumpOn=1;//所有跳转可以
-    return Config;
-  }
-  if(Config>=0)//指定继续、跳转到0一般为什么都不做的空闲状态、
-  {
-    spuerList[i].SupState=Config;
-    spuerList[i].SupJumpOn=1;
-    return Config;
-  }
-  return Config;
-}
-
-//i传入在List序号
-//这个函数既是在列表里定义而被循环调用，
-//也可以放到其他地方控制干预poll的进程-2暂停 -1不指定继续 >=0指定继续
-signed short SupCollectPoll(unsigned char i,signed short ConfigState)
-{
-  if(SupPreSwitchCase(i,ConfigState)==SupStopSwitchCode)
-  {
-    return SupStopSwitchCode;//-2则为暂停 不需要进行进switch case了
-  }
-
-  switch(SupMState)//这里根据事情的填充不一样的条件
-  {
-    case 0://空闲状态啥都不必做
-      break;
-    case 1:
-      if(SupJumpEn)SupMState=2;
-      break;
-    case 2:
-      if(SupJumpEn)SupMState=1;
-      break;
-
-  }
-
-  return SupMState;
-}
-
-//读取温度的事件
-signed short SupReadTemp(unsigned char i,signed short ConfigState)
-{
-  if(SupPreSwitchCase(i,ConfigState)==SupStopSwitchCode)
-  {
-    return SupStopSwitchCode;//-2则为暂停 不需要进行进switch case了
-  }
-  switch(SupMState)//这里根据事情的填充不一样的条件
-  {
-    case 0://空闲状态啥都不必做
-      break;
-    case 1://只要轮训一个的话就停留在这个case
-      if(SupMTimeCnt>100)
-      {
-        SupMTimeCnt=0;
-        ADCPause;
-        runParaData.dsT=DS18B20_GetTemperature();//温度
-        ADCContinue;
-      }
-      break;
-
-  }
-  return ConfigState;
-
-
-}
+SUPER_FRAME spuerList[MAXTHINGNUM];
 //事件记录列表  
 //一行为一条事件记录 
-SUPER_FRAME spuerList[] = 
+SUPER_FRAME spuerList[MAXTHINGNUM] = 
 {
-  {1,1,0,"事情1",SupCollectPoll},     
-  {1,1,0,"事情2",SupCollectPoll},
-  {1,1,0,"事情3",SupCollectPoll},
-  {1,1,0,"事情4",SupCollectPoll},
-  {1,1,0,"事情5",SupCollectPoll},
-  {1,1,0,"温度读取",SupReadTemp},
-
+  {-1,1,0,"ABCC",SupCollectPoll},     
+  {-1,1,0,"CDAD",SupCollectPoll},
+  {-1,1,0,"SSHA",SupCollectPoll},
+  {-1,1,0,"1234",SupCollectPoll},
+  {-1,1,0,"3323",SupCollectPoll},
+  {-1,1,0,"4342",SupReadTemp},
+  {-1,1,0,"3242",SupReadLcdPageAndTime},
+  {-1,1,0,"2323",SupxyMotorRun}
+ 
 };
-//每个事件时间计值的++
-//放到毫秒中断计数中
-void SupTimeCntFun(void)
-{
-  unsigned char i=0;
-  for(i=0;i<PollNum;i++)
-  {
-    if(SupJumpEn)
-    {
-      spuerList[i].SupTimeCnt++;
-    }else
-    {
-      spuerList[i].SupTimeCnt=0;
-    }
-  }
-}
-
-//流程控制循环体
-//放到主循环当中
-void SuperRunSequence(void)
-{
-  unsigned char i=0;
-  for(i=0;i<PollNum;i++)
-  {
-    //i传入在List序号，
-    //第二个参数传入-4 State不受影响  不会操作到SupJumpOn跳转开关
-    (*spuerList[i].SupPoll)(i,SupMainPollCode);
-  }
-
-}
 ```
