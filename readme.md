@@ -2,7 +2,7 @@
 
 ## [Things Step List System][事情步骤列表系统][demo：https://github.com/zdiputs/eventListList](https://github.com/zdiputs/eventListList)
 
-### TINGLS为动作流程自动化管理一套[简便]、[直观]、[便于调试]的C语言代码接口函数和列表。
+### TINGLS为动作流程自动化管理提供一套[简便]、[直观]、[便于调试]的C语言代码接口函数和列表。
 
 ## 特点
 
