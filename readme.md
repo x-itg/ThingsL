@@ -1,10 +1,6 @@
-# TINGS
+# TINGLS  
+## [Things Step List System][事情步骤列表系统][demo：https://github.com/zdiputs/eventListList](https://github.com/zdiputs/eventListList)
 
- [整个工程eventListList](https://github.com/zdiputs/eventListList)
-# TINGS  事情步骤列表[ThingSetpList]
-
-## 这是一个**tings**的例子，主要用于单片机裸机编程中的多任务(事情)流程处理，它使用简单静态列表管理**事情和步骤**。
- 
 ## 特点
 * 轻量，全文一个文件200行代码 ；
 * 静态列表直观容易调试；
@@ -19,15 +15,6 @@
 * 步骤：一系列步骤列表(事情)里的一条记录；
 * 环节：步骤的两个细分称为环节，每个步骤预设两个环节，一个Pre环节[进入该步骤后调用一次Pre环节函数]，一个Poll环节[进入改步骤后按该步骤轮询时间间隔调用]；
 * 列表：这里主要分成2种列表，一个事情列表，一个步骤列表，我们对列表里的内容进行增加或修改就可以实现某些流程上的功能而不必去修改底层调度的代码，这样做到将业务解耦代码的复用。
-  
-
-## 打开方式
--------------
-1. 单片机型号STM32F401CCU6
-2. [STM32CubeIDE Version: 1.9.0：./tPen/.project](./tPen/.project)   工程文件:./tPen/.project
-3. [iar 9.10.2 工程文件：./tPen/EWARM/Project.eww](./tPen/EWARM/Project.eww) 
-4. [电路原理图：./Pen电路.pdf](./Pen电路.pdf) 
-5. [主要代码：./tPen/Core/Src/TINGSOS.c](./tPen/Core/Src/TINGSOS.c)
 
 
 ## 代码
